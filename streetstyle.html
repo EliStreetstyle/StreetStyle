@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreetStyle — Straßenraumplanung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3efe6; --ink:#1b1d21; --ink-soft:#54585f;
+    --line:#d8d2c4; --line-strong:#b9b1a0;
+    --accent:#d4621a; --accent-deep:#a8480f;
+    --green:#6b8e4e; --panel:#fbf9f4;
+    --asphalt:#3a3f45; --concrete:#b8b2a7; --bike:#b5453a; --park:#8a8d91;
+    --shadow:0 1px 0 rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'IBM Plex Sans',sans-serif;background:var(--paper);color:var(--ink);
+    display:flex;flex-direction:column;height:100vh;overflow:hidden;
+    background-image:radial-gradient(var(--line) 0.5px,transparent 0.5px);
+    background-size:22px 22px;
+  }
+  header{
+    display:flex;align-items:baseline;gap:16px;padding:14px 22px;
+    border-bottom:2px solid var(--ink);background:var(--panel);
+  }
+  .logo{font-family:'Archivo',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.5px}
+  .logo .sl{color:var(--accent)}
+  .tag{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px}
+  nav{display:flex;gap:4px;margin-left:auto}
+  nav button{
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;letter-spacing:.3px;
+    border:1.5px solid var(--ink);background:transparent;color:var(--ink);
+    padding:8px 16px;cursor:pointer;border-radius:2px;transition:all .12s;
+  }
+  nav button:hover{background:rgba(212,98,26,.12)}
+  nav button.on{background:var(--ink);color:var(--paper)}
+  nav button.on:hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+
+  main{flex:1;display:flex;min-height:0;overflow:hidden}
+  .panel{flex:1;display:none;min-height:0}
+  .panel.on{display:flex}
+
+  /* sidebar */
+  aside{
+    width:340px;flex-shrink:0;border-right:1.5px solid var(--line-strong);
+    background:var(--panel);display:flex;flex-direction:column;min-height:0;
+  }
+  .aside-head{padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+  .aside-head h2{font-family:'Archivo',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+  .aside-head p{font-size:12px;color:var(--ink-soft);margin-top:3px}
+  .seglist{flex:1;overflow-y:auto;padding:12px}
+  .seg{
+    background:var(--paper);border:1px solid var(--line-strong);border-radius:3px;
+    padding:10px;margin-bottom:8px;display:grid;
+    grid-template-columns:14px 1fr auto;gap:8px;align-items:center;
+  }
+  .swatch{width:14px;height:34px;border-radius:2px;border:1px solid rgba(0,0,0,.15)}
+  .seg-main{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .seg select{
+    font-family:'IBM Plex Sans';font-size:13px;font-weight:500;padding:5px 6px;
+    border:1px solid var(--line-strong);border-radius:2px;background:#fff;width:100%;
+  }
+  .seg-w{display:flex;align-items:center;gap:6px}
+  .seg-w input{
+    width:64px;font-family:'IBM Plex Mono';font-size:13px;padding:4px 6px;
+    border:1px solid var(--line-strong);border-radius:2px;text-align:right;
+  }
+  .seg-w span{font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-soft)}
+  .seg-ctrl{display:flex;flex-direction:column;gap:3px}
+  .seg-ctrl button{
+    border:1px solid var(--line-strong);background:#fff;width:24px;height:18px;
+    cursor:pointer;border-radius:2px;font-size:11px;line-height:1;color:var(--ink-soft);
+  }
+  .seg-ctrl button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .seg-ctrl .del:hover{background:#b5453a;border-color:#b5453a}
+  .add-row{padding:12px;border-top:1px solid var(--line)}
+  .add-btn{
+    width:100%;font-family:'Archivo';font-weight:700;font-size:13px;letter-spacing:.3px;
+    padding:10px;border:1.5px dashed var(--line-strong);background:transparent;color:var(--ink-soft);
+    border-radius:3px;cursor:pointer;transition:all .12s;
+  }
+  .add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,98,26,.06)}
+
+  /* stage */
+  .stage{flex:1;display:flex;flex-direction:column;min-width:0;padding:22px}
+  .stat-bar{display:flex;gap:26px;margin-bottom:18px;flex-wrap:wrap}
+  .stat{display:flex;flex-direction:column;gap:1px}
+  .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-family:'Archivo';font-weight:700}
+  .stat .v{font-family:'IBM Plex Mono';font-size:22px;font-weight:500}
+  .stat .v small{font-size:13px;color:var(--ink-soft)}
+  .canvas-wrap{
+    flex:1;background:var(--panel);border:1.5px solid var(--line-strong);border-radius:4px;
+    box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;
+    min-height:0;overflow:hidden;position:relative;
+  }
+  .canvas-wrap::before{
+    content:"QUERSCHNITT · M 1:100";position:absolute;top:10px;left:14px;
+    font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-soft);letter-spacing:1px;
+  }
+  svg{width:100%;height:100%;display:block}
+
+  .placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ink-soft);text-align:center;padding:40px}
+  .placeholder .big{font-family:'Archivo';font-weight:800;font-size:20px;color:var(--ink)}
+  .placeholder code{font-family:'IBM Plex Mono';background:rgba(0,0,0,.05);padding:2px 6px;border-radius:3px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Street<span class="sl">Style</span></div>
+  <div class="tag">Straßenraum · Vorplanung</div>
+  <nav>
+    <button class="on" data-tab="qs">① Querschnitt</button>
+    <button data-tab="lp">② Lageplan</button>
+    <button data-tab="bl">③ Bilanz</button>
+  </nav>
+</header>
+
+<main>
+  <!-- QUERSCHNITT -->
+  <section class="panel on" id="p-qs">
+    <aside>
+      <div class="aside-head">
+        <h2>Segmente</h2>
+        <p>Von links nach rechts. Breite in Metern.</p>
+      </div>
+      <div class="seglist" id="seglist"></div>
+      <div class="add-row">
+        <button class="add-btn" id="addSeg">+ Segment hinzufügen</button>
+      </div>
+    </aside>
+    <div class="stage">
+      <div class="stat-bar">
+        <div class="stat"><span class="k">Gesamtbreite</span><span class="v" id="stTotal">–</span></div>
+        <div class="stat"><span class="k">Versiegelt</span><span class="v" id="stSealed">–</span></div>
+        <div class="stat"><span class="k">Grün</span><span class="v" id="stGreen">–</span></div>
+      </div>
+      <div class="canvas-wrap">
+        <svg id="xsvg" viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- LAGEPLAN -->
+  <section class="panel" id="p-lp">
+    <div class="placeholder">
+      <div class="big">② Lageplan</div>
+      <div>Kommt als Schritt 2 — die Draufsicht entsteht direkt aus dem Querschnitt.</div>
+    </div>
+  </section>
+
+  <!-- BILANZ -->
+  <section class="panel" id="p-bl">
+    <div class="placeholder">
+      <div class="big">③ Bilanz</div>
+      <div>Kommt als Schritt 3 — Flächen automatisch aus Querschnitt × Länge.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ---- Typdefinitionen (Belag-Logik steckt im Typ) ----
+const TYPES = {
+  fahrspur: {label:'Fahrspur',    color:'var(--asphalt)',  fill:'#3a3f45', sealed:true,  def:3.25},
+  gehweg:   {label:'Gehweg',      color:'var(--concrete)', fill:'#b8b2a7', sealed:true,  def:2.0},
+  radweg:   {label:'Radweg',      color:'var(--bike)',     fill:'#b5453a', sealed:true,  def:1.6},
+  parken:   {label:'Parken',      color:'var(--park)',     fill:'#8a8d91', sealed:true,  def:2.0},
+  gruen:    {label:'Grünstreifen',color:'var(--green)',    fill:'#6b8e4e', sealed:false, def:1.5},
+};
+
+// ---- Modell: geordnete Liste von Segmenten ----
+let segments = [
+  {id:1, type:'gehweg',   width:2.5},
+  {id:2, type:'gruen',    width:1.5},
+  {id:3, type:'parken',   width:2.0},
+  {id:4, type:'fahrspur', width:3.25},
+  {id:5, type:'fahrspur', width:3.25},
+  {id:6, type:'radweg',   width:1.6},
+  {id:7, type:'gehweg',   width:2.5},
+];
+let nextId = 8;
+
+const $ = s => document.querySelector(s);
+
+// ---- Tabs ----
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+    $('#p-'+b.dataset.tab).classList.add('on');
+  };
+});
+
+// ---- Sidebar rendern ----
+function renderSidebar(){
+  const list = $('#seglist'); list.innerHTML='';
+  segments.forEach((s,i)=>{
+    const t = TYPES[s.type];
+    const row = document.createElement('div'); row.className='seg';
+    const opts = Object.entries(TYPES).map(([k,v])=>
+      `<option value="${k}" ${k===s.type?'selected':''}>${v.label}</option>`).join('');
+    row.innerHTML = `
+      <div class="swatch" style="background:${t.fill}"></div>
+      <div class="seg-main">
+        <select data-i="${i}" class="type">${opts}</select>
+        <div class="seg-w">
+          <input type="number" step="0.05" min="0" value="${s.width}" data-i="${i}" class="wid">
+          <span>m</span>
+        </div>
+      </div>
+      <div class="seg-ctrl">
+        <button class="up"   data-i="${i}" title="hoch">▲</button>
+        <button class="down" data-i="${i}" title="runter">▼</button>
+        <button class="del"  data-i="${i}" title="löschen">✕</button>
+      </div>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.type').forEach(el=>el.onchange=e=>{
+    const i=+e.target.dataset.i; segments[i].type=e.target.value;
+    segments[i].width = TYPES[e.target.value].def; render();
+  });
+  list.querySelectorAll('.wid').forEach(el=>el.onchange=e=>{
+    const i=+e.target.dataset.i; segments[i].width=Math.max(0,parseFloat(e.target.value)||0); render();
+  });
+  list.querySelectorAll('.up').forEach(el=>el.onclick=e=>{
+    const i=+e.target.dataset.i; if(i>0){[segments[i-1],segments[i]]=[segments[i],segments[i-1]];render();}});
+  list.querySelectorAll('.down').forEach(el=>el.onclick=e=>{
+    const i=+e.target.dataset.i; if(i<segments.length-1){[segments[i+1],segments[i]]=[segments[i],segments[i+1]];render();}});
+  list.querySelectorAll('.del').forEach(el=>el.onclick=e=>{
+    const i=+e.target.dataset.i; segments.splice(i,1); render();});
+}
+
+$('#addSeg').onclick = ()=>{
+  segments.push({id:nextId++, type:'fahrspur', width:TYPES.fahrspur.def}); render();
+};
+
+// ---- Querschnitt zeichnen (SVG) ----
+function renderXS(){
+  const svg = $('#xsvg');
+  const VW=1000, VH=420, padX=60, padTop=60, bandH=190;
+  const total = segments.reduce((a,s)=>a+s.width,0) || 1;
+  const usableW = VW - padX*2;
+  const scale = usableW/total;            // px pro Meter
+  const baseY = padTop + bandH;
+  let x = padX, out='';
+
+  // Himmel/Boden-Andeutung
+  out += `<rect x="0" y="0" width="${VW}" height="${baseY}" fill="#eef1f3"/>`;
+  out += `<rect x="0" y="${baseY}" width="${VW}" height="${VH-baseY}" fill="#e7e0d2"/>`;
+
+  segments.forEach(s=>{
+    const t = TYPES[s.type];
+    const w = s.width*scale;
+    // Belagsfläche
+    out += `<rect x="${x.toFixed(1)}" y="${padTop}" width="${w.toFixed(1)}" height="${bandH}"
+              fill="${t.fill}" stroke="#1b1d21" stroke-width="1"/>`;
+    // grün = kleine Textur
+    if(!t.sealed){
+      out += `<rect x="${x.toFixed(1)}" y="${padTop}" width="${w.toFixed(1)}" height="${bandH}"
+                fill="url(#grass)" opacity="0.5"/>`;
+    }
+    // Label (nur wenn breit genug)
+    const cx = x + w/2;
+    if(w>46){
+      out += `<text x="${cx.toFixed(1)}" y="${padTop+bandH/2}" fill="${t.sealed?'#f3efe6':'#1b1d21'}"
+                font-family="Archivo" font-weight="700" font-size="14"
+                text-anchor="middle" dominant-baseline="middle">${t.label}</text>`;
+    }
+    // Maßlinie unten
+    const my = baseY+34;
+    out += `<line x1="${x.toFixed(1)}" y1="${my}" x2="${(x+w).toFixed(1)}" y2="${my}" stroke="#54585f" stroke-width="1"/>`;
+    out += `<line x1="${x.toFixed(1)}" y1="${my-4}" x2="${x.toFixed(1)}" y2="${my+4}" stroke="#54585f" stroke-width="1"/>`;
+    out += `<line x1="${(x+w).toFixed(1)}" y1="${my-4}" x2="${(x+w).toFixed(1)}" y2="${my+4}" stroke="#54585f" stroke-width="1"/>`;
+    out += `<text x="${cx.toFixed(1)}" y="${my+18}" fill="#54585f" font-family="IBM Plex Mono"
+              font-size="13" text-anchor="middle">${s.width.toFixed(2)} m</text>`;
+    x += w;
+  });
+
+  // Gesamtmaß oben
+  const ty = padTop-22;
+  out += `<line x1="${padX}" y1="${ty}" x2="${padX+usableW}" y2="${ty}" stroke="#d4621a" stroke-width="1.5"/>`;
+  out += `<line x1="${padX}" y1="${ty-5}" x2="${padX}" y2="${ty+5}" stroke="#d4621a" stroke-width="1.5"/>`;
+  out += `<line x1="${padX+usableW}" y1="${ty-5}" x2="${padX+usableW}" y2="${ty+5}" stroke="#d4621a" stroke-width="1.5"/>`;
+  out += `<text x="${padX+usableW/2}" y="${ty-8}" fill="#a8480f" font-family="IBM Plex Mono"
+            font-weight="600" font-size="13" text-anchor="middle">Gesamt ${total.toFixed(2)} m</text>`;
+
+  // defs für Grün-Textur
+  const defs = `<defs><pattern id="grass" width="8" height="8" patternUnits="userSpaceOnUse"
+      patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#4f6e37" stroke-width="1"/></pattern></defs>`;
+
+  svg.innerHTML = defs + out;
+}
+
+// ---- Statistik (Teaser der Bilanz) ----
+function renderStats(){
+  let total=0, sealed=0, green=0;
+  segments.forEach(s=>{ total+=s.width; (TYPES[s.type].sealed?(sealed+=s.width):(green+=s.width)); });
+  $('#stTotal').innerHTML  = total.toFixed(2)+' <small>m</small>';
+  $('#stSealed').innerHTML = sealed.toFixed(2)+' <small>m</small>';
+  $('#stGreen').innerHTML  = green.toFixed(2)+' <small>m</small>';
+}
+
+function render(){ renderSidebar(); renderXS(); renderStats(); }
+render();
+</script>
+</body>
+</html>
