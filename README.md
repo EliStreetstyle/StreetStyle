@@ -1,3 +1,3 @@
 ![StreetStyle](Cross-section.png)
-![StreetStyle](Site Plan.png)
+![StreetStyle](SitePlan.png)
 ![StreetStyle](Balance.png)
