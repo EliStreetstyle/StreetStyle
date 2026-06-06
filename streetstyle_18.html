@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StreetStyle — Street Space Planning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3efe6; --ink:#1b1d21; --ink-soft:#54585f;
+    --line:#d8d2c4; --line-strong:#b9b1a0;
+    --accent:#d4621a; --accent-deep:#a8480f;
+    --green:#6b8e4e; --panel:#fbf9f4;
+    --asphalt:#3a3f45; --concrete:#b8b2a7; --bike:#b5453a; --park:#8a8d91;
+    --shadow:0 1px 0 rgba(0,0,0,.04), 0 8px 24px -12px rgba(0,0,0,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'IBM Plex Sans',sans-serif;background:var(--paper);color:var(--ink);
+    display:flex;flex-direction:column;height:100vh;overflow:hidden;
+    background-image:radial-gradient(var(--line) 0.5px,transparent 0.5px);
+    background-size:22px 22px;
+  }
+  header{
+    display:flex;align-items:baseline;gap:16px;padding:14px 22px;
+    border-bottom:2px solid var(--ink);background:var(--panel);
+  }
+  .logo{font-family:'Archivo',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.5px}
+  .logo .sl{color:var(--accent)}
+  .tag{font-size:12px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;letter-spacing:.5px}
+  nav{display:flex;gap:4px;margin-left:auto}
+  nav button{
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;letter-spacing:.3px;
+    border:1.5px solid var(--ink);background:transparent;color:var(--ink);
+    padding:8px 16px;cursor:pointer;border-radius:2px;transition:all .12s;
+  }
+  nav button:hover{background:rgba(212,98,26,.12)}
+  nav button.on{background:var(--ink);color:var(--paper)}
+  nav button.on:hover{background:var(--accent-deep);border-color:var(--accent-deep)}
+
+  main{flex:1;display:flex;min-height:0;overflow:hidden}
+  .panel{flex:1;display:none;min-height:0}
+  .panel.on{display:flex}
+
+  aside{
+    width:340px;flex-shrink:0;border-right:1.5px solid var(--line-strong);
+    background:var(--panel);display:flex;flex-direction:column;min-height:0;
+  }
+  .aside-head{padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+  .aside-head h2{font-family:'Archivo',sans-serif;font-size:15px;font-weight:800;text-transform:uppercase;letter-spacing:1px}
+  .aside-head p{font-size:12px;color:var(--ink-soft);margin-top:3px}
+  .seglist{flex:1;overflow-y:auto;padding:12px}
+  .seg{
+    background:var(--paper);border:1px solid var(--line-strong);border-radius:3px;
+    padding:10px;margin-bottom:8px;display:grid;
+    grid-template-columns:14px 1fr auto;gap:8px;align-items:center;
+  }
+  .swatch{width:14px;height:34px;border-radius:2px;border:1px solid rgba(0,0,0,.15)}
+  .seg-main{display:flex;flex-direction:column;gap:6px;min-width:0}
+  .seg select{
+    font-family:'IBM Plex Sans';font-size:13px;font-weight:500;padding:5px 6px;
+    border:1px solid var(--line-strong);border-radius:2px;background:#fff;width:100%;
+  }
+  .seg-w{display:flex;align-items:center;gap:6px}
+  .seg-w input.wid{
+    width:64px;font-family:'IBM Plex Mono';font-size:13px;padding:4px 6px;
+    border:1px solid var(--line-strong);border-radius:2px;text-align:right;
+  }
+  .seg-w input.col{
+    width:30px;height:28px;padding:1px;border:1px solid var(--line-strong);
+    border-radius:2px;cursor:pointer;background:#fff;
+  }
+  .seg-w span{font-family:'IBM Plex Mono';font-size:12px;color:var(--ink-soft)}
+  .seg-ctrl{display:flex;flex-direction:column;gap:3px}
+  .seg-ctrl button{
+    border:1px solid var(--line-strong);background:#fff;width:24px;height:18px;
+    cursor:pointer;border-radius:2px;font-size:11px;line-height:1;color:var(--ink-soft);
+  }
+  .seg-ctrl button:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .seg-ctrl .del:hover{background:#b5453a;border-color:#b5453a}
+  .add-row{padding:12px;border-top:1px solid var(--line)}
+  .add-btn{
+    width:100%;font-family:'Archivo';font-weight:700;font-size:13px;letter-spacing:.3px;
+    padding:10px;border:1.5px dashed var(--line-strong);background:transparent;color:var(--ink-soft);
+    border-radius:3px;cursor:pointer;transition:all .12s;
+  }
+  .add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,98,26,.06)}
+  .tool{
+    flex:1;font-family:'Archivo';font-weight:700;font-size:12px;padding:7px 4px;
+    border:1.5px solid var(--line-strong);background:#fff;color:var(--ink-soft);
+    border-radius:3px;cursor:pointer;transition:all .12s;
+  }
+  .tool:hover{border-color:var(--accent);color:var(--accent)}
+  .tool.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  .stage{flex:1;display:flex;flex-direction:column;min-width:0;padding:22px}
+  .stat-bar{display:flex;gap:26px;margin-bottom:18px;flex-wrap:wrap}
+  .stat{display:flex;flex-direction:column;gap:1px}
+  .stat .k{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);font-family:'Archivo';font-weight:700}
+  .stat .v{font-family:'IBM Plex Mono';font-size:22px;font-weight:500}
+  .stat .v small{font-size:13px;color:var(--ink-soft)}
+  .canvas-wrap{
+    flex:1;background:var(--panel);border:1.5px solid var(--line-strong);border-radius:4px;
+    box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;
+    min-height:0;overflow:hidden;position:relative;
+  }
+  .canvas-wrap::before{
+    content:attr(data-label);position:absolute;top:10px;left:14px;
+    font-family:'IBM Plex Mono';font-size:11px;color:var(--ink-soft);letter-spacing:1px;
+  }
+  svg{width:100%;height:100%;display:block}
+
+  .placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ink-soft);text-align:center;padding:40px}
+  .placeholder .big{font-family:'Archivo';font-weight:800;font-size:20px;color:var(--ink)}
+  .placeholder code{font-family:'IBM Plex Mono';background:rgba(0,0,0,.05);padding:2px 6px;border-radius:3px;font-size:13px}
+
+  #blTable{width:100%;border-collapse:collapse;margin-top:30px;font-family:'IBM Plex Sans';font-size:14px}
+  #blTable th{
+    font-family:'Archivo';font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.6px;
+    color:var(--ink-soft);text-align:right;padding:8px 14px;border-bottom:2px solid var(--ink);
+  }
+  #blTable th:first-child{text-align:left}
+  #blTable td{padding:9px 14px;border-bottom:1px solid var(--line);text-align:right;font-family:'IBM Plex Mono'}
+  #blTable td:first-child{text-align:left;font-family:'IBM Plex Sans';font-weight:500}
+  #blTable .swatch-sm{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:8px;vertical-align:middle;border:1px solid rgba(0,0,0,.2)}
+  #blTable input{
+    width:84px;font-family:'IBM Plex Mono';font-size:14px;padding:4px 8px;text-align:right;
+    border:1px solid var(--line-strong);border-radius:2px;
+  }
+  #blTable tr.total td{border-top:2px solid var(--ink);border-bottom:none;font-weight:700;font-size:16px;padding-top:12px}
+  #blTable tr.total td:first-child{font-family:'Archivo';font-weight:800}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Street<span class="sl">Style</span></div>
+  <div class="tag">Street space · Preliminary design</div>
+  <nav>
+    <button class="on" data-tab="qs">① Cross-section</button>
+    <button data-tab="lp">② Site plan</button>
+    <button data-tab="bl">③ Balance</button>
+  </nav>
+</header>
+
+<main>
+  <!-- CROSS-SECTION -->
+  <section class="panel on" id="p-qs">
+    <aside>
+      <div class="aside-head">
+        <h2>Segments</h2>
+        <p>Left to right. Width in meters.</p>
+      </div>
+      <div class="seglist" id="seglist"></div>
+      <div class="add-row">
+        <button class="add-btn" id="addSeg">+ Add segment</button>
+      </div>
+    </aside>
+    <div class="stage">
+      <div class="stat-bar">
+        <div class="stat"><span class="k">Total width</span><span class="v" id="stTotal">–</span></div>
+        <div class="stat"><span class="k">Sealed</span><span class="v" id="stSealed">–</span></div>
+        <div class="stat"><span class="k">Green</span><span class="v" id="stGreen">–</span></div>
+      </div>
+      <div class="canvas-wrap" data-label="CROSS-SECTION · 1:100">
+        <svg id="xsvg" viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- SITE PLAN -->
+  <section class="panel" id="p-lp">
+    <aside>
+      <div class="aside-head">
+        <h2>Site plan</h2>
+        <p>Top-down view, generated from the cross-section.</p>
+      </div>
+      <div style="padding:16px 18px;overflow-y:auto">
+        <div style="font-family:'Archivo';font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);margin-bottom:6px">Road length</div>
+        <div class="seg-w">
+          <input type="number" step="5" min="1" value="100" id="roadLen" style="width:90px">
+          <span>m</span>
+        </div>
+        <p style="font-size:12px;color:var(--ink-soft);margin-top:14px;line-height:1.5">
+          The dashed line is the <b>centerline</b> — the future alignment for road tracing.
+        </p>
+
+        <div style="font-family:'Archivo';font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);margin:22px 0 8px;border-top:1px solid var(--line);padding-top:16px">Place tool</div>
+        <div id="toolbar" style="display:flex;gap:6px;margin-bottom:6px">
+          <button class="tool on" data-tool="drive">Driveway</button>
+          <button class="tool" data-tool="tree">Tree bed</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink-soft);margin:0 0 4px;line-height:1.5">Click on the plan to place · drag to move.</p>
+
+        <div style="font-family:'Archivo';font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);margin:18px 0 8px">Driveways</div>
+        <div id="drivelist"></div>
+        <button class="add-btn" id="addDrive" style="margin-top:8px">+ Add driveway</button>
+
+        <div style="font-family:'Archivo';font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink-soft);margin:18px 0 8px">Tree beds</div>
+        <div id="treelist"></div>
+        <button class="add-btn" id="addTree" style="margin-top:8px">+ Add tree bed</button>
+      </div>
+    </aside>
+    <div class="stage">
+      <div class="stat-bar">
+        <div class="stat"><span class="k">Total area</span><span class="v" id="lpArea">–</span></div>
+        <div class="stat"><span class="k">Sealed</span><span class="v" id="lpSealed">–</span></div>
+        <div class="stat"><span class="k">Green</span><span class="v" id="lpGreen">–</span></div>
+      </div>
+      <div class="canvas-wrap" data-label="SITE PLAN · TOP-DOWN">
+        <svg id="lpsvg" viewBox="0 0 1000 420" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- BALANCE -->
+  <section class="panel" id="p-bl">
+    <div class="stage">
+      <div class="stat-bar">
+        <div class="stat"><span class="k">Paved area</span><span class="v" id="blPaved">–</span></div>
+        <div class="stat"><span class="k">Green area</span><span class="v" id="blGreen">–</span></div>
+        <div class="stat"><span class="k">Trees</span><span class="v" id="blTrees">–</span></div>
+        <div class="stat"><span class="k">Total cost</span><span class="v" id="blTotal" style="color:var(--accent-deep)">–</span></div>
+      </div>
+      <div class="canvas-wrap" data-label="USAGE · QUANTITIES · COST" style="align-items:flex-start;justify-content:flex-start;overflow:auto;padding:28px;gap:0">
+        <div style="display:flex;gap:36px;width:100%;flex-wrap:wrap;align-items:flex-start">
+          <div style="flex-shrink:0;margin-top:18px">
+            <div style="font-family:'Archivo';font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink-soft);margin-bottom:10px">Usage by type</div>
+            <svg id="pieSvg" width="220" height="220" viewBox="0 0 220 220"></svg>
+            <div id="pieLegend" style="margin-top:14px;display:flex;flex-direction:column;gap:7px;width:220px"></div>
+          </div>
+          <table id="blTable" style="flex:1;min-width:380px;margin-top:0"></table>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ---- Type definitions: type decides which materials are allowed ----
+const TYPES = {
+  lane:     {label:'Lane',        sealed:true,  traffic:true,  mats:['asphalt','paving'], def:3.25},
+  sidewalk: {label:'Sidewalk',    sealed:true,  traffic:false, mats:['paving','asphalt'], def:2.0},
+  bike:     {label:'Bike lane',   sealed:true,  traffic:true,  mats:['asphalt','paving'], def:1.6},
+  parking:  {label:'Parking',     sealed:true,  traffic:false, mats:['paving','asphalt'], def:2.0},
+  green:    {label:'Green strip', sealed:false, traffic:false, mats:['green','gravel'],   def:1.5},
+};
+// ---- Materials: drive colour + texture (basis for the later per-material balance) ----
+const MATERIALS = {
+  asphalt: {label:'Asphalt', fill:'#3a3f45', tex:null,    light:true},
+  paving:  {label:'Paving',  fill:'#8f857a', tex:'pave',  light:true},
+  green:   {label:'Green',   fill:'#6b8e4e', tex:'grass', light:false},
+  gravel:  {label:'Gravel',  fill:'#c2b280', tex:'grit',  light:false},
+};
+const matOf = s => (s.material && MATERIALS[s.material]) ? s.material : TYPES[s.type].mats[0];
+// per-segment colour override; material gives the default
+const colOf = s => s.color || MATERIALS[matOf(s)].fill;
+// pick light or dark label text from the chosen colour's luminance
+function lightText(hex){
+  const c=hex.replace('#',''); if(c.length<6) return true;
+  const r=parseInt(c.substr(0,2),16), g=parseInt(c.substr(2,2),16), b=parseInt(c.substr(4,2),16);
+  return (0.299*r+0.587*g+0.114*b) < 140;
+}
+
+// ---- Model: ordered list of segments ----
+let segments = [
+  {id:1, type:'sidewalk', width:2.5,  material:'paving'},
+  {id:2, type:'green',    width:1.5,  material:'green'},
+  {id:3, type:'parking',  width:2.0,  material:'paving'},
+  {id:4, type:'lane',     width:3.25, material:'asphalt'},
+  {id:5, type:'lane',     width:3.25, material:'asphalt'},
+  {id:6, type:'bike',     width:1.6,  material:'asphalt'},
+  {id:7, type:'sidewalk', width:2.5,  material:'paving'},
+];
+let nextId = 8;
+
+const $ = s => document.querySelector(s);
+
+// ---- Tabs ----
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+    $('#p-'+b.dataset.tab).classList.add('on');
+  };
+});
+
+// ---- Render sidebar ----
+function renderSidebar(){
+  const list = $('#seglist'); list.innerHTML='';
+  segments.forEach((s,i)=>{
+    const t = TYPES[s.type];
+    const mat = matOf(s);
+    const row = document.createElement('div'); row.className='seg';
+    const typeOpts = Object.entries(TYPES).map(([k,v])=>
+      `<option value="${k}" ${k===s.type?'selected':''}>${v.label}</option>`).join('');
+    const matOpts = t.mats.map(m=>
+      `<option value="${m}" ${m===mat?'selected':''}>${MATERIALS[m].label}</option>`).join('');
+    row.innerHTML = `
+      <div class="swatch" style="background:${colOf(s)}"></div>
+      <div class="seg-main">
+        <select data-i="${i}" class="type">${typeOpts}</select>
+        <select data-i="${i}" class="mat">${matOpts}</select>
+        <div class="seg-w">
+          <input type="color" data-i="${i}" class="col" value="${colOf(s)}" title="colour">
+          <input type="number" step="0.05" min="0" value="${s.width}" data-i="${i}" class="wid">
+          <span>m</span>
+        </div>
+      </div>
+      <div class="seg-ctrl">
+        <button class="up"   data-i="${i}" title="up">▲</button>
+        <button class="down" data-i="${i}" title="down">▼</button>
+        <button class="del"  data-i="${i}" title="delete">✕</button>
+      </div>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.type').forEach(el=>el.onchange=e=>{
+    const i=+e.target.dataset.i; segments[i].type=e.target.value;
+    segments[i].width = TYPES[e.target.value].def;
+    segments[i].material = TYPES[e.target.value].mats[0];
+    delete segments[i].color;                              // back to material default colour
+    render();
+  });
+  list.querySelectorAll('.mat').forEach(el=>el.onchange=e=>{
+    const i=+e.target.dataset.i; segments[i].material=e.target.value;
+    delete segments[i].color;                              // back to material default colour
+    render();
+  });
+  list.querySelectorAll('.col').forEach(el=>el.oninput=e=>{
+    const i=+e.target.dataset.i; segments[i].color=e.target.value; render();
+  });
+  list.querySelectorAll('.wid').forEach(el=>el.onchange=e=>{
+    const i=+e.target.dataset.i; segments[i].width=Math.max(0,parseFloat(e.target.value)||0); render();
+  });
+  list.querySelectorAll('.up').forEach(el=>el.onclick=e=>{
+    const i=+e.target.dataset.i; if(i>0){[segments[i-1],segments[i]]=[segments[i],segments[i-1]];render();}});
+  list.querySelectorAll('.down').forEach(el=>el.onclick=e=>{
+    const i=+e.target.dataset.i; if(i<segments.length-1){[segments[i+1],segments[i]]=[segments[i],segments[i+1]];render();}});
+  list.querySelectorAll('.del').forEach(el=>el.onclick=e=>{
+    const i=+e.target.dataset.i; segments.splice(i,1); render();});
+}
+
+$('#addSeg').onclick = ()=>{
+  segments.push({id:nextId++, type:'lane', width:TYPES.lane.def, material:'asphalt'}); render();
+};
+
+// ---- Draw cross-section (SVG) ----
+function renderXS(){
+  const svg = $('#xsvg');
+  const VW=1000, VH=420, padX=60, padTop=60, bandH=190;
+  const total = segments.reduce((a,s)=>a+s.width,0) || 1;
+  const usableW = VW - padX*2;
+  const scale = usableW/total;            // px per meter
+  const baseY = padTop + bandH;
+  let x = padX, out='';
+
+  // sky / ground hint
+  out += `<rect x="0" y="0" width="${VW}" height="${baseY}" fill="#eef1f3"/>`;
+  out += `<rect x="0" y="${baseY}" width="${VW}" height="${VH-baseY}" fill="#e7e0d2"/>`;
+
+  segments.forEach(s=>{
+    const t = TYPES[s.type];
+    const m = MATERIALS[matOf(s)];
+    const col = colOf(s);
+    const w = s.width*scale;
+    out += `<rect x="${x.toFixed(1)}" y="${padTop}" width="${w.toFixed(1)}" height="${bandH}"
+              fill="${col}" stroke="#1b1d21" stroke-width="1"/>`;
+    if(m.tex){
+      out += `<rect x="${x.toFixed(1)}" y="${padTop}" width="${w.toFixed(1)}" height="${bandH}"
+                fill="url(#${m.tex})" opacity="0.5"/>`;
+    }
+    const cx = x + w/2;
+    if(w>46){
+      out += `<text x="${cx.toFixed(1)}" y="${padTop+bandH/2}" fill="${lightText(col)?'#f3efe6':'#1b1d21'}"
+                font-family="Archivo" font-weight="700" font-size="14"
+                text-anchor="middle" dominant-baseline="middle">${t.label}</text>`;
+    }
+    const my = baseY+34;
+    out += `<line x1="${x.toFixed(1)}" y1="${my}" x2="${(x+w).toFixed(1)}" y2="${my}" stroke="#54585f" stroke-width="1"/>`;
+    out += `<line x1="${x.toFixed(1)}" y1="${my-4}" x2="${x.toFixed(1)}" y2="${my+4}" stroke="#54585f" stroke-width="1"/>`;
+    out += `<line x1="${(x+w).toFixed(1)}" y1="${my-4}" x2="${(x+w).toFixed(1)}" y2="${my+4}" stroke="#54585f" stroke-width="1"/>`;
+    out += `<text x="${cx.toFixed(1)}" y="${my+18}" fill="#54585f" font-family="IBM Plex Mono"
+              font-size="13" text-anchor="middle">${s.width.toFixed(2)} m</text>`;
+    x += w;
+  });
+
+  const ty = padTop-22;
+  out += `<line x1="${padX}" y1="${ty}" x2="${padX+usableW}" y2="${ty}" stroke="#d4621a" stroke-width="1.5"/>`;
+  out += `<line x1="${padX}" y1="${ty-5}" x2="${padX}" y2="${ty+5}" stroke="#d4621a" stroke-width="1.5"/>`;
+  out += `<line x1="${padX+usableW}" y1="${ty-5}" x2="${padX+usableW}" y2="${ty+5}" stroke="#d4621a" stroke-width="1.5"/>`;
+  out += `<text x="${padX+usableW/2}" y="${ty-8}" fill="#a8480f" font-family="IBM Plex Mono"
+            font-weight="600" font-size="13" text-anchor="middle">Total ${total.toFixed(2)} m</text>`;
+
+  const defs = `<defs>
+    <pattern id="grass" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#4f6e37" stroke-width="1"/></pattern>
+    <pattern id="pave" width="16" height="10" patternUnits="userSpaceOnUse">
+      <rect width="16" height="10" fill="none"/>
+      <path d="M0 0H16M0 10H16M0 0V10M8 0V10" stroke="#000" stroke-opacity="0.28" stroke-width="0.8"/>
+      <line x1="8" y1="5" x2="16" y2="5" stroke="#000" stroke-opacity="0.28" stroke-width="0.8"/>
+      <line x1="0" y1="5" x2="8" y2="5" stroke="#000" stroke-opacity="0" stroke-width="0"/></pattern>
+    <pattern id="grit" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#6b5d3e"/><circle cx="6" cy="6" r="1" fill="#6b5d3e"/>
+      <circle cx="7" cy="2" r="0.8" fill="#6b5d3e"/></pattern>
+  </defs>`;
+
+  svg.innerHTML = defs + out;
+}
+
+// ---- Stats (teaser of the balance) ----
+function renderStats(){
+  let total=0, sealed=0, green=0;
+  segments.forEach(s=>{ total+=s.width; (TYPES[s.type].sealed?(sealed+=s.width):(green+=s.width)); });
+  $('#stTotal').innerHTML  = total.toFixed(2)+' <small>m</small>';
+  $('#stSealed').innerHTML = sealed.toFixed(2)+' <small>m</small>';
+  $('#stGreen').innerHTML  = green.toFixed(2)+' <small>m</small>';
+}
+
+// ---- Road length (drives site plan + balance) ----
+let roadLength = 100;
+$('#roadLen').onchange = e=>{ roadLength = Math.max(1, parseFloat(e.target.value)||100); render(); };
+
+// ---- Driveways: property accesses on the site plan ----
+// model: {id, side:'top'|'bottom', pos (m along length, = centre), width (m along length)}
+let driveways = [ {id:1, side:'top', pos:25, width:5} ];
+let nextDriveId = 2;
+let lpGeo = null;       // last site-plan geometry, for click/drag placement
+
+function renderDriveList(){
+  const list = $('#drivelist'); if(!list) return; list.innerHTML='';
+  driveways.forEach((d,i)=>{
+    const row = document.createElement('div'); row.className='seg'; row.style.gridTemplateColumns='1fr auto';
+    row.innerHTML = `
+      <div class="seg-main">
+        <select data-i="${i}" class="dside">
+          <option value="top" ${d.side==='top'?'selected':''}>Top side</option>
+          <option value="bottom" ${d.side==='bottom'?'selected':''}>Bottom side</option>
+        </select>
+        <div class="seg-w">
+          <input type="number" step="1" min="0" value="${d.pos}" data-i="${i}" class="dpos" title="position along road">
+          <span>m&nbsp;pos</span>
+        </div>
+        <div class="seg-w">
+          <input type="number" step="0.5" min="0.5" value="${d.width}" data-i="${i}" class="dwid" title="width">
+          <span>m&nbsp;wide</span>
+        </div>
+      </div>
+      <div class="seg-ctrl"><button class="ddel" data-i="${i}" title="delete">✕</button></div>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.dside').forEach(el=>el.onchange=e=>{driveways[+e.target.dataset.i].side=e.target.value;render();});
+  list.querySelectorAll('.dpos').forEach(el=>el.onchange=e=>{driveways[+e.target.dataset.i].pos=Math.max(0,parseFloat(e.target.value)||0);render();});
+  list.querySelectorAll('.dwid').forEach(el=>el.onchange=e=>{driveways[+e.target.dataset.i].width=Math.max(0.5,parseFloat(e.target.value)||0.5);render();});
+  list.querySelectorAll('.ddel').forEach(el=>el.onclick=e=>{driveways.splice(+e.target.dataset.i,1);render();});
+}
+const addDriveBtn = $('#addDrive');
+if(addDriveBtn) addDriveBtn.onclick = ()=>{ driveways.push({id:nextDriveId++, side:'top', pos:Math.round(roadLength/2), width:5}); render(); };
+
+// ---- Tree beds: a planted square inside a chosen strip ----
+// model: {id, segId (which strip), pos (m along length), bed (m square), crown (m diameter)}
+let treebeds = [ {id:1, segId:2, pos:12, bed:2, crown:6} ];   // default in the green strip
+let nextTreeId = 2;
+let placeTool = 'drive';   // which object a click places
+
+function stripOptions(sel){
+  return segments.map((s,idx)=>
+    `<option value="${s.id}" ${s.id===sel?'selected':''}>${idx+1} · ${TYPES[s.type].label}</option>`).join('');
+}
+function defaultStrip(){
+  const g = segments.find(s=>s.type==='green') || segments.find(s=>s.type==='parking') || segments[0];
+  return g ? g.id : null;
+}
+
+function renderTreeList(){
+  const list = $('#treelist'); if(!list) return; list.innerHTML='';
+  treebeds.forEach((tb,i)=>{
+    const row = document.createElement('div'); row.className='seg'; row.style.gridTemplateColumns='1fr auto';
+    row.innerHTML = `
+      <div class="seg-main">
+        <select data-i="${i}" class="tstrip">${stripOptions(tb.segId)}</select>
+        <div class="seg-w">
+          <input type="number" step="1" min="0" value="${tb.pos}" data-i="${i}" class="tpos" title="position along road">
+          <span>m&nbsp;pos</span>
+        </div>
+        <div class="seg-w">
+          <input type="number" step="0.5" min="0.5" value="${tb.bed}" data-i="${i}" class="tbed" title="bed size">
+          <span>m&nbsp;bed</span>
+          <input type="number" step="0.5" min="0.5" value="${tb.crown}" data-i="${i}" class="tcrown" title="crown diameter">
+          <span>m&nbsp;⌀</span>
+        </div>
+      </div>
+      <div class="seg-ctrl"><button class="tdel" data-i="${i}" title="delete">✕</button></div>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.tstrip').forEach(el=>el.onchange=e=>{treebeds[+e.target.dataset.i].segId=+e.target.value;render();});
+  list.querySelectorAll('.tpos').forEach(el=>el.onchange=e=>{treebeds[+e.target.dataset.i].pos=Math.max(0,parseFloat(e.target.value)||0);render();});
+  list.querySelectorAll('.tbed').forEach(el=>el.onchange=e=>{treebeds[+e.target.dataset.i].bed=Math.max(0.5,parseFloat(e.target.value)||0.5);render();});
+  list.querySelectorAll('.tcrown').forEach(el=>el.onchange=e=>{treebeds[+e.target.dataset.i].crown=Math.max(0.5,parseFloat(e.target.value)||0.5);render();});
+  list.querySelectorAll('.tdel').forEach(el=>el.onclick=e=>{treebeds.splice(+e.target.dataset.i,1);render();});
+}
+const addTreeBtn = $('#addTree');
+if(addTreeBtn) addTreeBtn.onclick = ()=>{ treebeds.push({id:nextTreeId++, segId:defaultStrip(), pos:Math.round(roadLength/2), bed:2, crown:6}); render(); };
+
+// tool toggle
+document.querySelectorAll('.tool').forEach(b=>{ if(b.onclick!==undefined) b.onclick=()=>{
+  placeTool=b.dataset.tool;
+  document.querySelectorAll('.tool').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+};});
+
+// ---- Click to place / drag to move objects on the site plan ----
+(function initLPInteract(){
+  const svg = $('#lpsvg'); if(!svg || !svg.addEventListener) return;
+  svg.style.cursor = 'crosshair';
+  let drag = null;   // {kind:'drive'|'tree', idx}
+
+  function userPt(evt){
+    const pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+    const ctm = svg.getScreenCTM(); if(!ctm) return null;
+    const p = pt.matrixTransform(ctm.inverse()); return {x:p.x, y:p.y};
+  }
+  function driveRect(d){
+    const g = lpGeo;
+    const span = (d.side==='top') ? g.pavingTop : g.pavingBottom;
+    if(!span) return {x:0,y:0,w:0,h:0};
+    const dx = g.x0 + Math.min(Math.max(d.pos - d.width/2, 0), g.L)*g.scale;
+    return {x:dx, y:span.lo, w:d.width*g.scale, h:span.hi-span.lo};
+  }
+  function treeRect(tb){
+    const g = lpGeo; const band = (g.bands||[]).find(b=>b.id===tb.segId);
+    if(!band) return {x:0,y:0,w:0,h:0};
+    const cyc = (band.a+band.b)/2;
+    const r = Math.max(Math.max(5,tb.bed*g.scale)/2, tb.crown*g.scale/2);   // grab area = crown
+    const cx = g.x0 + Math.min(Math.max(tb.pos,0),g.L)*g.scale;
+    return {x:cx-r, y:cyc-r, w:2*r, h:2*r};
+  }
+  const inside = (p,r)=> r.w>0 && p.x>=r.x && p.x<=r.x+r.w && p.y>=r.y && p.y<=r.y+r.h;
+  function hitTree(p){ for(let i=treebeds.length-1;i>=0;i--) if(inside(p,treeRect(treebeds[i]))) return i; return -1; }
+  function hitDrive(p){ for(let i=driveways.length-1;i>=0;i--) if(inside(p,driveRect(driveways[i]))) return i; return -1; }
+  // which strip does a y-coordinate fall into (nearest if outside the road)
+  function bandAt(y){
+    const bs = lpGeo.bands||[]; if(!bs.length) return null;
+    const hit = bs.find(b=>y>=b.a && y<=b.b); if(hit) return hit.id;
+    let best=bs[0], bd=Infinity; bs.forEach(b=>{const c=(b.a+b.b)/2,d=Math.abs(c-y);if(d<bd){bd=d;best=b;}}); return best.id;
+  }
+
+  function moveTo(p){
+    const g = lpGeo;
+    const pos  = Math.round(Math.min(Math.max((p.x - g.x0)/g.scale, 0), g.L));
+    if(drag.kind==='tree'){ treebeds[drag.idx].pos=pos; treebeds[drag.idx].segId=bandAt(p.y); }
+    else { driveways[drag.idx].pos=pos; driveways[drag.idx].side=(p.y<g.cy)?'top':'bottom'; }
+  }
+
+  svg.addEventListener('pointerdown', e=>{
+    if(!lpGeo) return;
+    const p = userPt(e); if(!p) return;
+    const g = lpGeo;
+    const pos = Math.round(Math.min(Math.max((p.x - g.x0)/g.scale, 0), g.L));
+    const side = (p.y < g.cy) ? 'top' : 'bottom';
+    const ht = hitTree(p), hd = hitDrive(p);
+    if(ht>=0){ drag={kind:'tree', idx:ht}; }
+    else if(hd>=0){ drag={kind:'drive', idx:hd}; }
+    else if(placeTool==='tree'){ treebeds.push({id:nextTreeId++, segId:bandAt(p.y), pos, bed:2, crown:6}); drag={kind:'tree', idx:treebeds.length-1}; render(); }
+    else { driveways.push({id:nextDriveId++, side, pos, width:5}); drag={kind:'drive', idx:driveways.length-1}; render(); }
+    svg.setPointerCapture && svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener('pointermove', e=>{
+    if(!drag || !lpGeo) return;
+    const p = userPt(e); if(!p) return;
+    moveTo(p); render();
+  });
+  svg.addEventListener('pointerup', e=>{ drag=null; svg.releasePointerCapture && svg.releasePointerCapture(e.pointerId); });
+})();
+
+// ---- Draw site plan / top-down (SVG) ----
+function renderLP(){
+  const svg = $('#lpsvg');
+  const VW=1000, VH=420, padX=70, padY=56;
+  const L = roadLength;
+  const W = segments.reduce((a,s)=>a+s.width,0) || 1;
+  const usableW = VW - padX*2, usableH = VH - padY*2;
+  // equal scale on both axes → realistic proportions (a road is long and thin)
+  const scale = Math.min(usableW/L, usableH/W);
+  const roadPxL = L*scale, roadPxW = W*scale;
+  const x0 = (VW - roadPxL)/2;          // left edge of road
+  const y0 = (VH - roadPxW)/2;          // top edge of road
+  let out='';
+
+  // ground
+  out += `<rect x="0" y="0" width="${VW}" height="${VH}" fill="#e7e0d2"/>`;
+
+  // plots + houses on both sides (context so driveways read as property accesses)
+  function drawPlots(roadEdgeY, side){
+    const depth = Math.min(64, side==='top' ? roadEdgeY-8 : (VH-roadEdgeY-24));
+    if(depth < 18) return '';
+    const bandY = side==='top' ? roadEdgeY-depth : roadEdgeY;     // top edge of the plot band
+    const frontPx = Math.max(48, 12*scale);                        // ~12 m frontage
+    const n = Math.max(1, Math.round(roadPxL/frontPx));
+    const pw = roadPxL/n;
+    let s = '';
+    s += `<rect x="${x0.toFixed(1)}" y="${bandY.toFixed(1)}" width="${roadPxL.toFixed(1)}" height="${depth.toFixed(1)}" fill="#efe8d8"/>`;
+    for(let k=0;k<n;k++){
+      const px = x0 + k*pw;
+      s += `<line x1="${px.toFixed(1)}" y1="${bandY.toFixed(1)}" x2="${px.toFixed(1)}" y2="${(bandY+depth).toFixed(1)}" stroke="#c9bfa9" stroke-width="1"/>`;
+      // house in the outer half of the plot (yard faces the road)
+      const hw = pw*0.5, hh = depth*0.42;
+      const hx = px + (pw-hw)/2;
+      const hy = side==='top' ? bandY+depth*0.10 : bandY+depth*0.48;
+      s += `<rect x="${hx.toFixed(1)}" y="${hy.toFixed(1)}" width="${hw.toFixed(1)}" height="${hh.toFixed(1)}"
+              fill="#8a7d6e" stroke="#5e5346" stroke-width="1"/>`;
+    }
+    // outer plot boundary line
+    const oy = side==='top' ? bandY : bandY+depth;
+    s += `<line x1="${x0.toFixed(1)}" y1="${oy.toFixed(1)}" x2="${(x0+roadPxL).toFixed(1)}" y2="${oy.toFixed(1)}" stroke="#b9b1a0" stroke-width="1"/>`;
+    return s;
+  }
+  out += drawPlots(y0, 'top');
+  out += drawPlots(y0+roadPxW, 'bottom');
+
+  // bands (stacked across width in segment order)
+  let y = y0;
+  let laneTop = null, laneBot = null;   // y-extent of the carriageway (lane segments)
+  const segGeo = [];                    // {a, b, mat, mid} per segment, for driveway placement
+  segments.forEach(s=>{
+    const t = TYPES[s.type];
+    const m = MATERIALS[matOf(s)];
+    const col = colOf(s);
+    const h = s.width*scale;
+    out += `<rect x="${x0.toFixed(1)}" y="${y.toFixed(1)}" width="${roadPxL.toFixed(1)}" height="${h.toFixed(1)}"
+              fill="${col}" stroke="#1b1d21" stroke-width="0.75"/>`;
+    if(m.tex){
+      out += `<rect x="${x0.toFixed(1)}" y="${y.toFixed(1)}" width="${roadPxL.toFixed(1)}" height="${h.toFixed(1)}"
+                fill="url(#${m.tex})" opacity="0.5"/>`;
+    }
+    if(h>16){
+      out += `<text x="${(x0+10).toFixed(1)}" y="${(y+h/2).toFixed(1)}" fill="${lightText(col)?'#f3efe6':'#1b1d21'}"
+                font-family="Archivo" font-weight="700" font-size="12"
+                dominant-baseline="middle">${t.label}</text>`;
+    }
+    if(s.type==='lane'){ if(laneTop===null) laneTop=y; laneBot=y+h; }
+    segGeo.push({id:s.id, a:y, b:y+h, mat:matOf(s), mid:y+h/2});
+    y += h;
+  });
+  // fallback if no lanes present: use the road centre
+  if(laneTop===null){ laneTop = y0 + roadPxW/2; laneBot = laneTop; }
+
+  // paved extent per side (a driveway only crosses paving, never asphalt)
+  const cyMid = y0 + roadPxW/2;
+  // driveway runs contiguously from the property edge inward and stops only
+  // at asphalt (the carriageway); any paved/green surface is crossed
+  function pavingSpan(side){
+    const onSide = segGeo.filter(g => ((g.mid < cyMid) ? 'top' : 'bottom') === side);
+    if(side==='bottom') onSide.reverse();           // order: outer edge → centre
+    let lo=Infinity, hi=-Infinity, any=false;
+    for(const g of onSide){
+      if(g.mat!=='asphalt'){ lo=Math.min(lo,g.a); hi=Math.max(hi,g.b); any=true; }
+      else break;                                   // hit asphalt → stop
+    }
+    return any ? {lo,hi} : null;
+  }
+
+  // driveways: only across the paved part of the verge
+  driveways.forEach(d=>{
+    const span = pavingSpan(d.side);
+    if(!span) return;                       // no paving on that side → nothing to cross
+    const dx = x0 + Math.min(Math.max(d.pos - d.width/2, 0), L)*scale;
+    const dw = d.width*scale;
+    const yTop = span.lo, dh = span.hi - span.lo;
+    out += `<rect x="${dx.toFixed(1)}" y="${yTop.toFixed(1)}" width="${dw.toFixed(1)}" height="${dh.toFixed(1)}"
+              fill="url(#drive)" stroke="#2f6f8f" stroke-width="1.5"/>`;
+    if(dw>34 && dh>30){
+      out += `<text x="${(dx+dw/2).toFixed(1)}" y="${(yTop+dh/2).toFixed(1)}" fill="#22566e"
+                font-family="Archivo" font-weight="700" font-size="10" text-anchor="middle"
+                dominant-baseline="middle" transform="rotate(-90 ${(dx+dw/2).toFixed(1)} ${(yTop+dh/2).toFixed(1)})">DRIVEWAY</text>`;
+    }
+  });
+
+  // tree beds: a planted square inside a chosen strip, with a tree canopy
+  treebeds.forEach(tb=>{
+    const band = segGeo.find(g=>g.id===tb.segId);
+    if(!band) return;                              // assigned strip was removed
+    const cyy = (band.a+band.b)/2;
+    const cx = x0 + Math.min(Math.max(tb.pos,0),L)*scale;
+    const bedPx = Math.max(5, tb.bed*scale);
+    const crownR = Math.max(4, tb.crown*scale/2);
+    out += `<rect x="${(cx-bedPx/2).toFixed(1)}" y="${(cyy-bedPx/2).toFixed(1)}" width="${bedPx.toFixed(1)}" height="${bedPx.toFixed(1)}"
+              fill="#7a5c3a" stroke="#4a3826" stroke-width="1"/>`;
+    out += `<circle cx="${cx.toFixed(1)}" cy="${cyy.toFixed(1)}" r="${crownR.toFixed(1)}" fill="#5f8a43" fill-opacity="0.75" stroke="#3f6029" stroke-width="1"/>`;
+    out += `<circle cx="${cx.toFixed(1)}" cy="${cyy.toFixed(1)}" r="${Math.max(1.2, 0.25*scale).toFixed(1)}" fill="#3f6029"/>`;
+  });
+
+  // centerline (axis) — dashed, at the width-middle, running along the length
+  const cy = y0 + roadPxW/2;
+  out += `<line x1="${(x0-12).toFixed(1)}" y1="${cy.toFixed(1)}" x2="${(x0+roadPxL+12).toFixed(1)}" y2="${cy.toFixed(1)}"
+            stroke="#d4621a" stroke-width="1.5" stroke-dasharray="14 6 3 6"/>`;
+  out += `<text x="${(x0+roadPxL+16).toFixed(1)}" y="${cy.toFixed(1)}" fill="#a8480f"
+            font-family="IBM Plex Mono" font-size="11" dominant-baseline="middle">axis</text>`;
+
+  // length dimension (very bottom, below the plots)
+  const dy = VH - 16;
+  out += `<line x1="${x0.toFixed(1)}" y1="${dy}" x2="${(x0+roadPxL).toFixed(1)}" y2="${dy}" stroke="#54585f" stroke-width="1"/>`;
+  out += `<line x1="${x0.toFixed(1)}" y1="${dy-4}" x2="${x0.toFixed(1)}" y2="${dy+4}" stroke="#54585f" stroke-width="1"/>`;
+  out += `<line x1="${(x0+roadPxL).toFixed(1)}" y1="${dy-4}" x2="${(x0+roadPxL).toFixed(1)}" y2="${dy+4}" stroke="#54585f" stroke-width="1"/>`;
+  out += `<text x="${(x0+roadPxL/2).toFixed(1)}" y="${dy-6}" fill="#54585f" font-family="IBM Plex Mono"
+            font-size="13" text-anchor="middle">${L.toFixed(0)} m</text>`;
+
+  // width dimension (left)
+  const dx = x0 - 26;
+  out += `<line x1="${dx}" y1="${y0.toFixed(1)}" x2="${dx}" y2="${(y0+roadPxW).toFixed(1)}" stroke="#54585f" stroke-width="1"/>`;
+  out += `<line x1="${dx-4}" y1="${y0.toFixed(1)}" x2="${dx+4}" y2="${y0.toFixed(1)}" stroke="#54585f" stroke-width="1"/>`;
+  out += `<line x1="${dx-4}" y1="${(y0+roadPxW).toFixed(1)}" x2="${dx+4}" y2="${(y0+roadPxW).toFixed(1)}" stroke="#54585f" stroke-width="1"/>`;
+  out += `<text x="${dx-8}" y="${cy.toFixed(1)}" fill="#54585f" font-family="IBM Plex Mono" font-size="13"
+            text-anchor="middle" transform="rotate(-90 ${dx-8} ${cy.toFixed(1)})">${W.toFixed(2)} m</text>`;
+
+  const defs = `<defs>
+    <pattern id="grass" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#4f6e37" stroke-width="1"/></pattern>
+    <pattern id="pave" width="16" height="10" patternUnits="userSpaceOnUse">
+      <path d="M0 0H16M0 10H16M0 0V10M8 0V10" stroke="#000" stroke-opacity="0.28" stroke-width="0.8"/>
+      <line x1="8" y1="5" x2="16" y2="5" stroke="#000" stroke-opacity="0.28" stroke-width="0.8"/></pattern>
+    <pattern id="grit" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#6b5d3e"/><circle cx="6" cy="6" r="1" fill="#6b5d3e"/>
+      <circle cx="7" cy="2" r="0.8" fill="#6b5d3e"/></pattern>
+    <pattern id="drive" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="7" height="7" fill="#dCEAF0"/><line x1="0" y1="0" x2="0" y2="7" stroke="#2f6f8f" stroke-width="1.1"/></pattern>
+  </defs>`;
+  svg.innerHTML = defs + out;
+  lpGeo = {scale, x0, y0, roadPxL, roadPxW, laneTop, laneBot, cy, L,
+           pavingTop: pavingSpan('top'), pavingBottom: pavingSpan('bottom'),
+           bands: segGeo.map(g=>({id:g.id, a:g.a, b:g.b}))};
+}
+
+// ---- Area stats (m², teaser of the balance) ----
+function renderAreaStats(){
+  let sealed=0, green=0;
+  segments.forEach(s=>{ const a=s.width*roadLength; (TYPES[s.type].sealed?(sealed+=a):(green+=a)); });
+  $('#lpArea').innerHTML   = (sealed+green).toFixed(0)+' <small>m²</small>';
+  $('#lpSealed').innerHTML = sealed.toFixed(0)+' <small>m²</small>';
+  $('#lpGreen').innerHTML  = green.toFixed(0)+' <small>m²</small>';
+}
+
+// ---- Usage pie chart (share by segment type) ----
+const TYPE_COLORS = {lane:'#3a3f45', parking:'#8a8d91', bike:'#b5453a', sidewalk:'#b8b2a7', green:'#6b8e4e'};
+function renderUsagePie(){
+  const svg = $('#pieSvg'), leg = $('#pieLegend'); if(!svg) return;
+  const byType = {};
+  segments.forEach(s=>{ byType[s.type] = (byType[s.type]||0) + s.width; });
+  const total = Object.values(byType).reduce((a,b)=>a+b,0) || 1;
+  const cx=110, cy=110, r=100;
+  const order = ['lane','parking','bike','sidewalk','green'];
+  let ang = -Math.PI/2, out='', legend='';
+  order.forEach(k=>{
+    const wsum = byType[k]; if(!wsum) return;
+    const frac = wsum/total, a2 = ang + frac*2*Math.PI;
+    const x1=cx+r*Math.cos(ang), y1=cy+r*Math.sin(ang);
+    const x2=cx+r*Math.cos(a2),  y2=cy+r*Math.sin(a2);
+    const large = frac>0.5 ? 1 : 0;
+    if(frac>0.999){ // single full-circle type
+      out += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${TYPE_COLORS[k]}"/>`;
+    } else {
+      out += `<path d="M${cx} ${cy} L${x1.toFixed(1)} ${y1.toFixed(1)} A${r} ${r} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} Z"
+                fill="${TYPE_COLORS[k]}" stroke="#fbf9f4" stroke-width="2"/>`;
+    }
+    const mid=(ang+a2)/2, lr=r*0.62;
+    if(frac>0.06) out += `<text x="${(cx+lr*Math.cos(mid)).toFixed(1)}" y="${(cy+lr*Math.sin(mid)).toFixed(1)}"
+        fill="#fff" font-family="IBM Plex Mono" font-size="13" font-weight="600"
+        text-anchor="middle" dominant-baseline="middle">${Math.round(frac*100)}%</text>`;
+    legend += `<div style="display:flex;align-items:center;gap:8px;font-family:'IBM Plex Sans';font-size:13px">
+        <span style="width:12px;height:12px;border-radius:2px;background:${TYPE_COLORS[k]};display:inline-block;flex-shrink:0"></span>
+        ${TYPES[k].label}
+        <span style="margin-left:auto;font-family:'IBM Plex Mono';color:var(--ink-soft)">${(frac*100).toFixed(0)}% · ${wsum.toFixed(2)} m</span>
+      </div>`;
+    ang = a2;
+  });
+  svg.innerHTML = out;
+  if(leg) leg.innerHTML = legend;
+}
+
+// ---- Balance: quantities per material + editable unit prices → total cost ----
+let unitPrice = { asphalt:45, paving:80, green:35, gravel:55 };  // €/m², editable
+let bedPrice  = 90;                                             // €/m² tree bed planting
+let treePrice = 1200;                                           // €/tree, editable
+
+// segments crossed by a driveway (contiguous from property edge until asphalt)
+function drivewayCrossedSegs(d){
+  const total = segments.reduce((a,s)=>a+s.width,0) || 1;
+  let c=0; const arr = segments.map(s=>{ const a=c, b=c+s.width; c=b; return {s, mid:(a+b)/2}; });
+  let onSide = arr.filter(o => (o.mid < total/2 ? 'top':'bottom') === d.side);
+  if(d.side==='bottom') onSide.reverse();           // outer edge → centre
+  const crossed=[];
+  for(const o of onSide){ if(matOf(o.s)!=='asphalt') crossed.push(o.s); else break; }
+  return crossed;
+}
+
+function renderBalance(){
+  const table = $('#blTable'); if(!table) return;
+
+  // 1) base areas per material (m²) = segment width × road length
+  const area = {asphalt:0, paving:0, green:0, gravel:0};
+  segments.forEach(s=>{ area[matOf(s)] += s.width * roadLength; });
+
+  // 2) tree beds carve their footprint out of their strip → counted as planting
+  let bedArea = 0;
+  treebeds.forEach(tb=>{ const seg=segments.find(s=>s.id===tb.segId); if(!seg) return;
+    const f = tb.bed*tb.bed; area[matOf(seg)] -= f; bedArea += f; });
+
+  // 3) driveways carve out of crossed segments → counted as paving (one use per location)
+  let driveArea = 0;
+  driveways.forEach(d=>{ drivewayCrossedSegs(d).forEach(s=>{
+    const f = d.width * s.width; area[matOf(s)] -= f; driveArea += f; }); });
+  area.paving += driveArea;
+
+  Object.keys(area).forEach(k=> area[k]=Math.max(0, area[k]));   // no negatives
+  const nTrees = treebeds.length;
+
+  let sealed=0, green=0, total=0;
+  let rows = `<tr><th>Item</th><th>Quantity</th><th>Unit</th><th>Unit price</th><th>Cost</th></tr>`;
+  Object.keys(MATERIALS).forEach(k=>{
+    const a = area[k]; if(a<=0.01) return;
+    const cost = a*unitPrice[k]; total += cost;
+    if(k==='green'||k==='gravel') green+=a; else sealed+=a;
+    const label = (k==='paving') ? 'Paving (incl. driveways)' : MATERIALS[k].label;
+    rows += `<tr>
+      <td><span class="swatch-sm" style="background:${MATERIALS[k].fill}"></span>${label}</td>
+      <td>${a.toFixed(1)}</td><td>m²</td>
+      <td><input type="number" step="1" min="0" value="${unitPrice[k]}" class="up-${k}"> €</td>
+      <td>${cost.toLocaleString('de-DE',{maximumFractionDigits:0})} €</td>
+    </tr>`;
+  });
+  // tree beds as planting area (counted as green/unsealed)
+  if(bedArea>0.01){ const c=bedArea*bedPrice; total+=c; green+=bedArea;
+    rows += `<tr>
+      <td><span class="swatch-sm" style="background:#7a5c3a"></span>Tree beds (planting)</td>
+      <td>${bedArea.toFixed(1)}</td><td>m²</td>
+      <td><input type="number" step="5" min="0" value="${bedPrice}" class="bp"> €</td>
+      <td>${c.toLocaleString('de-DE',{maximumFractionDigits:0})} €</td>
+    </tr>`;
+  }
+  // trees as a count line
+  const treeCost = nTrees*treePrice; total += treeCost;
+  rows += `<tr>
+    <td><span class="swatch-sm" style="background:#5f8a43"></span>Trees</td>
+    <td>${nTrees}</td><td>pcs</td>
+    <td><input type="number" step="50" min="0" value="${treePrice}" class="tp"> €</td>
+    <td>${treeCost.toLocaleString('de-DE',{maximumFractionDigits:0})} €</td>
+  </tr>`;
+  rows += `<tr class="total"><td>Total</td><td></td><td></td><td></td>
+    <td>${total.toLocaleString('de-DE',{maximumFractionDigits:0})} €</td></tr>`;
+  table.innerHTML = rows;
+
+  // wire the editable price inputs
+  Object.keys(MATERIALS).forEach(k=>{
+    const el = table.querySelector('.up-'+k);
+    if(el) el.onchange = e=>{ unitPrice[k]=Math.max(0,parseFloat(e.target.value)||0); renderBalance(); };
+  });
+  const tp = table.querySelector('.tp');
+  if(tp) tp.onchange = e=>{ treePrice=Math.max(0,parseFloat(e.target.value)||0); renderBalance(); };
+  const bp = table.querySelector('.bp');
+  if(bp) bp.onchange = e=>{ bedPrice=Math.max(0,parseFloat(e.target.value)||0); renderBalance(); };
+
+  // headline stats
+  $('#blPaved').innerHTML = sealed.toFixed(0)+' <small>m²</small>';
+  $('#blGreen').innerHTML = green.toFixed(0)+' <small>m²</small>';
+  $('#blTrees').innerHTML = nTrees+'';
+  $('#blTotal').innerHTML = total.toLocaleString('de-DE',{maximumFractionDigits:0})+' <small>€</small>';
+  renderUsagePie();
+}
+
+function render(){ renderSidebar(); renderXS(); renderStats(); renderLP(); renderAreaStats(); renderDriveList(); renderTreeList(); renderBalance(); }
+render();
+</script>
+</body>
+</html>
